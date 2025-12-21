@@ -10,7 +10,6 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentAction, setCurrentAction] = useState("");
   
-  // Voice States
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [availableVoices, setAvailableVoices] = useState([]);
@@ -38,11 +37,9 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, currentAction]);
 
-  // --- NEW: Background Audio Generator (Zero Latency) ---
   const prefetchAudio = async (text, msgIndex) => {
     if (!text.trim()) return;
 
-    // Capture the voice used for this pre-fetch
     const voiceUsed = selectedVoice; 
 
     try {
@@ -59,14 +56,13 @@ export default function App() {
       const data = await res.json();
 
       if (data.audioChunks) {
-        // Update the specific message with the cached audio
         setMessages(prev => {
           const newMsgs = [...prev];
           if (newMsgs[msgIndex]) {
             newMsgs[msgIndex] = {
               ...newMsgs[msgIndex],
-              audioCache: data.audioChunks, // Save audio here
-              audioVoice: voiceUsed         // Remember which voice was used
+              audioCache: data.audioChunks,
+              audioVoice: voiceUsed
             };
           }
           return newMsgs;
@@ -80,9 +76,7 @@ export default function App() {
 
 
   
-  // --- UPDATED: Instant Playback Logic ---
   const handleSpeak = async (msg) => {
-    // 1. Stop if playing
     if (isSpeaking) {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -100,13 +94,11 @@ export default function App() {
 
     let audioChunksToPlay = null;
 
-    // 2. CHECK CACHE: Do we already have the audio for this EXACT voice?
     if (msg.audioCache && msg.audioVoice === selectedVoice) {
       console.log("Playing from Cache (Zero Latency)");
       audioChunksToPlay = msg.audioCache;
     } 
     else {
-      // 3. FALLBACK: Fetch now (if voice changed or cache failed)
       console.log("Cache miss or voice changed. Fetching...");
       try {
         const res = await fetch('http://localhost:5000/api/speak', {
@@ -123,7 +115,6 @@ export default function App() {
       }
     }
 
-    // 4. Play the chunks
     if (audioChunksToPlay && audioChunksToPlay.length > 0) {
       let index = 0;
       const playNext = () => {
@@ -141,7 +132,6 @@ export default function App() {
     }
   };
 
-  // --- Recorder ---
   const handleMicClick = async () => {
     if (isRecording) {
       mediaRecorderRef.current?.stop();
@@ -196,7 +186,6 @@ const handleAnalyze = async () => {
       const formData = new FormData(); 
       formData.append('file', file);
       
-      // IMPORTANT: Send the selected voice so the server uses the right one in the background
       formData.append('voiceId', selectedVoice); 
 
       const res = await fetch('http://localhost:5000/api/analyze', { 
@@ -204,13 +193,11 @@ const handleAnalyze = async () => {
         body: formData 
       });
 
-      // 1. Capture the Request ID from the server
       const requestId = res.headers.get('X-Request-ID');
 
       setCurrentAction(""); 
       setMessages([{ role: 'ai', content: "" }]);
       
-      // 2. Stream the text
       const fullText = await streamResponse(res, (fn) => setMessages(prev => {
         const newMsgs = [...prev];
         const updatedMsg = { ...newMsgs[0] };
@@ -221,9 +208,7 @@ const handleAnalyze = async () => {
       
       setExtractedText(fullText);
 
-      // 3. Retrieve the audio that was generated in parallel
       if (requestId) {
-        // Index is 0 because analyze wipes previous chat
         fetchCachedAudio(requestId, 0); 
       }
 
@@ -246,7 +231,7 @@ const handleAnalyze = async () => {
             newMsgs[msgIndex] = {
               ...newMsgs[msgIndex],
               audioCache: data.audioChunks,
-              audioVoice: selectedVoice // Mark as ready
+              audioVoice: selectedVoice
             };
           }
           return newMsgs;
@@ -262,8 +247,7 @@ const handleAnalyze = async () => {
     if (!input.trim()) return;
     const msg = input; 
     setInput(""); 
-    const aiMsgIndex = messages.length + 1; // Index of the incoming AI message
-
+    const aiMsgIndex = messages.length + 1;
     setMessages(p => [...p, { role: 'user', content: msg }]); 
     setIsProcessing(true); 
     setCurrentAction("Thinking...");
@@ -275,17 +259,15 @@ const handleAnalyze = async () => {
         body: JSON.stringify({ 
           message: msg, 
           context: extractedText,
-          voiceId: selectedVoice // Send voice choice for background processing
+          voiceId: selectedVoice
         }) 
       });
 
-      // 1. Capture Request ID
       const requestId = res.headers.get('X-Request-ID');
 
       setCurrentAction(""); 
       setMessages(p => [...p, { role: 'ai', content: "" }]);
       
-      // 2. Stream Text
       await streamResponse(res, (fn) => setMessages(prev => {
         const newMsgs = [...prev];
         const idx = newMsgs.length - 1;
@@ -295,7 +277,6 @@ const handleAnalyze = async () => {
         return newMsgs;
       }));
 
-      // 3. Immediately fetch the audio that was generating in background
       if (requestId) {
         fetchCachedAudio(requestId, aiMsgIndex);
       }
@@ -313,7 +294,6 @@ const handleAnalyze = async () => {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 px-4">
       <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-4xl flex flex-col md:flex-row gap-6 h-[80vh]">
         
-        {/* LEFT */}
         <div className="w-full md:w-1/3 flex flex-col border-r border-gray-100 pr-4">
           <h1 className="text-xl font-bold mb-4 text-gray-800">AI Assistant</h1>
           <input type="file" id="file-upload" className="hidden" onChange={handleFileChange}/>
@@ -322,7 +302,6 @@ const handleAnalyze = async () => {
           </label>
           <button onClick={handleAnalyze} disabled={isProcessing || !file} className="mt-4 w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800 disabled:bg-gray-300 transition font-medium shadow-lg disabled:shadow-none">{isProcessing ? "Busy..." : "Start Analysis"}</button>
           
-          {/* VOICE SELECTOR */}
           <div className="mt-auto pt-6 border-t border-gray-100">
              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Assistant Voice</label>
              <div className="relative">
@@ -340,14 +319,12 @@ const handleAnalyze = async () => {
           </div>
         </div>
 
-        {/* RIGHT */}
         <div className="w-full md:w-2/3 flex flex-col h-full relative">
           <div className="flex-1 overflow-y-auto pr-2 space-y-6 pb-20 scrollbar-hide">
              {messages.length===0 && !currentAction && <div className="h-full flex flex-col items-center justify-center text-gray-300"><Bot className="w-12 h-12 mb-2"/><p>Ready</p></div>}
              {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}>
                    
-                   {/* AI Avatar & Speak Button (Only for AI) */}
                    {msg.role === 'ai' && (
                      <div className="flex flex-col items-center mr-2 mt-1 gap-1">
                        <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white">
@@ -358,7 +335,6 @@ const handleAnalyze = async () => {
                          className="text-gray-400 hover:text-black opacity-0 group-hover:opacity-100 transition"
                          title="Read Aloud"
                        >
-                         {/* Logic: Show Stop if talking. Show Green Speaker if cached. Show Gray Speaker if normal. */}
                          {isSpeaking && i === messages.length - 1 
                             ? <StopCircle size={16}/> 
                             : (msg.audioCache && msg.audioVoice === selectedVoice 
@@ -370,14 +346,12 @@ const handleAnalyze = async () => {
                      </div>
                    )}
 
-                   {/* Message Bubble */}
                    <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
                       msg.role === 'user' 
                         ? 'bg-blue-600 text-white rounded-br-none' 
                         : 'bg-gray-100 text-gray-800 rounded-bl-none'
                    }`}>
                       {msg.role === 'ai' ? (
-                        /* AI Message: Render Markdown (Bold, Lists, etc.) */
                         <ReactMarkdown 
                           components={{
                             strong: ({node, ...props}) => <span className="font-bold text-black" {...props} />,
@@ -394,7 +368,6 @@ const handleAnalyze = async () => {
                           {msg.content}
                         </ReactMarkdown>
                       ) : (
-                        /* User Message: Keep simple text */
                         msg.content
                       )}
                    </div>
