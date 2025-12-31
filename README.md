@@ -34,7 +34,7 @@ A modern, responsive React application built with **Vite** and **TailwindCSS**. 
 ### Prerequisites
 
 * **Node.js** (v18 or higher)
-* **Backend Server** running on port `5000` (refer to the Backend repo).
+* **Backend Server** running on port `5000` ([refer to the Backend repo](https://github.com/MuhammadAlix/DocumentAnalyzerserver.git)).
 
 ### 1. Clone & Install
 
