@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentToken } from './store/authSlice';
 import { useGetVoicesQuery, useGetHistoryQuery, apiSlice } from './store/apiSlice';
@@ -20,7 +20,6 @@ export default function ChatInterface() {
 
     const [chatList, setChatList] = useState([]);
     const [messages, setMessages] = useState([]);
-
     const [file, setFile] = useState(null);
     const [extractedText, setExtractedText] = useState("");
     const [input, setInput] = useState("");
@@ -28,95 +27,139 @@ export default function ChatInterface() {
     const [currentAction, setCurrentAction] = useState("");
     const [currentChatId, setCurrentChatId] = useState('temp');
     const [showSidebar, setShowSidebar] = useState(true);
-
     const [isRecording, setIsRecording] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [availableVoices, setAvailableVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState("");
     const [showVoiceMenu, setShowVoiceMenu] = useState(false);
+    const [useGeneralKnowledge, setUseGeneralKnowledge] = useState(true);
 
     const chatEndRef = useRef(null);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const audioRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const shouldAutoScrollRef = useRef(true);
+    const isUserInteracting = useRef(false);
 
+    useLayoutEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        if (shouldAutoScrollRef.current && !isUserInteracting.current) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }, [messages, currentAction, extractedText]);
+
+    const handleScroll = () => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+        if (!isUserInteracting.current) {
+            shouldAutoScrollRef.current = isAtBottom;
+        }
+    };
+
+    const handleInteractionStart = () => { isUserInteracting.current = true; };
+    const handleInteractionEnd = () => {
+        isUserInteracting.current = false;
+        handleScroll();
+    };
     useEffect(() => {
         if (historyData) {
             const tempChat = { id: 'temp', title: 'New Chat' };
             setChatList([tempChat, ...historyData]);
         }
     }, [historyData]);
-
     useEffect(() => {
         fetchVoices();
-
         const initHistory = async () => {
             try {
                 const res = await fetch('http://localhost:5000/api/history', { headers: getAuthHeaders() });
                 const data = await res.json();
-
                 const tempChat = { id: 'temp', title: 'New Chat' };
                 setChatList([tempChat, ...data]);
-
                 setCurrentChatId('temp');
             } catch (e) {
                 console.error("History Error:", e);
             }
         };
-
         initHistory();
     }, []);
-
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, currentAction]);
-
+    const streamBufferRef = useRef("");
     const streamRequest = async (endpoint, body) => {
         try {
             const headers = { 'Authorization': `Bearer ${token}` };
             if (!(body instanceof FormData)) headers['Content-Type'] = 'application/json';
-
             const res = await fetch(`http://localhost:5000/api${endpoint}`, {
                 method: 'POST',
                 headers,
                 body: body instanceof FormData ? body : JSON.stringify(body)
             });
-
             const newChatId = res.headers.get('X-Chat-ID');
             const requestId = res.headers.get('X-Request-ID');
-
             if (newChatId) {
                 dispatch(apiSlice.util.invalidateTags(['History']));
                 setCurrentChatId(newChatId);
             }
-
+            setMessages(p => [...p, { role: 'ai', content: "" }]);
+            if (requestId) {
+                fetchCachedAudio(requestId, messages.length);
+            }
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
-            let fullText = "";
+            streamBufferRef.current = "";
+            let networkStreamDone = false;
+            const consumeNetworkStream = async () => {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        networkStreamDone = true;
+                        break;
+                    }
+                    const chunk = decoder.decode(value, { stream: true });
+                    streamBufferRef.current += chunk;
+                }
+            };
+            consumeNetworkStream();
+            let displayedIndex = 0;
+            await new Promise((resolve) => {
+                const typeWriterInterval = setInterval(() => {
+                    const targetText = streamBufferRef.current;
+                    if (displayedIndex < targetText.length) {
+                        const lag = targetText.length - displayedIndex;
+                        const step = lag > 50 ? 5 : (lag > 20 ? 3 : 2);
+                        const nextChunk = targetText.slice(displayedIndex, displayedIndex + step);
+                        setMessages(prev => {
+                            const newMsgs = [...prev];
+                            const lastIdx = newMsgs.length - 1;
+                            if (lastIdx >= 0 && newMsgs[lastIdx].role === 'ai') {
+                                newMsgs[lastIdx] = {
+                                    ...newMsgs[lastIdx],
+                                    content: targetText.slice(0, displayedIndex + nextChunk.length)
+                                };
+                            }
+                            return newMsgs;
+                        });
 
-            setMessages(p => [...p, { role: 'ai', content: "" }]);
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
-
-                setMessages(prev => {
-                    const newMsgs = [...prev];
-                    const last = { ...newMsgs[newMsgs.length - 1] };
-                    last.content = fullText;
-                    newMsgs[newMsgs.length - 1] = last;
-                    return newMsgs;
-                });
-            }
-
-            return { fullText, requestId };
+                        displayedIndex += nextChunk.length;
+                    }
+                    else if (networkStreamDone) {
+                        clearInterval(typeWriterInterval);
+                        resolve();
+                    }
+                }, 30);
+            });
+            return { fullText: streamBufferRef.current, requestId };
         } catch (e) {
             console.error(e);
+            return { fullText: "", requestId: null };
         }
     };
-
     const fetchVoices = () => {
         fetch('http://localhost:5000/api/voices', { headers: getAuthHeaders() })
             .then(res => res.json())
@@ -126,7 +169,6 @@ export default function ChatInterface() {
                 if (defaultVoice) setSelectedVoice(defaultVoice.id);
             }).catch(e => console.error(e));
     };
-
     const fetchHistory = async () => {
         try {
             const res = await fetch('http://localhost:5000/api/history', { headers: getAuthHeaders() });
@@ -135,28 +177,24 @@ export default function ChatInterface() {
             setChatList([tempChat, ...data]);
         } catch (e) { console.error(e); }
     };
-
-
-
-    // Load Old Chat
     const loadChat = async (id) => {
         if (id === 'temp') {
             startNewChat(true);
             return;
         }
-
         setIsProcessing(true);
         setCurrentAction("Loading chat...");
+        shouldAutoScrollRef.current = false;
         try {
             const res = await fetch(`http://localhost:5000/api/history/${id}`, { headers: getAuthHeaders() });
             const data = await res.json();
-
             setExtractedText(data.context || "");
-            const history = data.Messages || data.messages || [];
-            setMessages(history);
+            setMessages(data.Messages || data.messages || []);
             setCurrentChatId(data.id);
             setFile(null);
-
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = 0;
+            }
             if (window.innerWidth < 768) setShowSidebar(false);
         } catch (e) {
             console.error(e);
@@ -165,14 +203,12 @@ export default function ChatInterface() {
             setCurrentAction("");
         }
     };
-
     const startNewChat = (clear = true) => {
         if (clear) {
             setMessages([]);
             setExtractedText("");
             setFile(null);
         }
-
         if (chatList.length > 0 && chatList[0].id === 'temp') {
             setCurrentChatId('temp');
         } else {
@@ -180,52 +216,8 @@ export default function ChatInterface() {
             setChatList(prev => [tempChat, ...prev]);
             setCurrentChatId('temp');
         }
-
         if (window.innerWidth < 768) setShowSidebar(false);
     };
-
-
-    const prefetchAudio = async (text, msgIndex) => {
-        if (!text.trim()) return;
-
-        const voiceUsed = selectedVoice;
-
-        try {
-            const res = await fetch('http://localhost:5000/api/speak', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders()
-                },
-                body: JSON.stringify({
-                    text: text.replace(/[*#_`]/g, '').trim(),
-                    voiceId: voiceUsed
-                })
-            });
-
-            const data = await res.json();
-
-            if (data.audioChunks) {
-                setMessages(prev => {
-                    const newMsgs = [...prev];
-                    if (newMsgs[msgIndex]) {
-                        newMsgs[msgIndex] = {
-                            ...newMsgs[msgIndex],
-                            audioCache: data.audioChunks,
-                            audioVoice: voiceUsed
-                        };
-                    }
-                    return newMsgs;
-                });
-                console.log(`Audio pre-fetched for message ${msgIndex}`);
-            }
-        } catch (e) {
-            console.error("Audio pre-fetch failed", e);
-        }
-    };
-
-
-
     const handleSpeak = async (msg) => {
         if (isSpeaking) {
             if (audioRef.current) {
@@ -235,15 +227,11 @@ export default function ChatInterface() {
             setIsSpeaking(false);
             return;
         }
-
         const text = msg.content;
         const cleanText = text.replace(/[*#_`]/g, '').trim();
         if (!cleanText) return;
-
         setIsSpeaking(true);
-
         let audioChunksToPlay = null;
-
         if (msg.audioCache && msg.audioVoice === selectedVoice) {
             console.log("Playing from Cache (Zero Latency)");
             audioChunksToPlay = msg.audioCache;
@@ -267,7 +255,6 @@ export default function ChatInterface() {
                 return;
             }
         }
-
         if (audioChunksToPlay && audioChunksToPlay.length > 0) {
             let index = 0;
             const playNext = () => {
@@ -284,7 +271,6 @@ export default function ChatInterface() {
             playNext();
         }
     };
-
     const handleMicClick = async () => {
         if (isRecording) {
             mediaRecorderRef.current?.stop();
@@ -313,109 +299,81 @@ export default function ChatInterface() {
             setIsRecording(true);
         } catch (err) { alert("Mic access denied"); }
     };
-
     const handleFileChange = (e) => { setFile(e.target.files[0]); e.target.value = null; };
-
-    const streamResponse = async (response, callback) => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-            for (let char of chunk) { callback(prev => prev + char); await new Promise(r => setTimeout(r, 20)); }
-        }
-        return buffer;
-    };
-
     const handleAnalyze = async () => {
         if (!file) return;
+        shouldAutoScrollRef.current = true;
         setMessages([]); setIsProcessing(true); setCurrentAction("Analyzing...");
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('voiceId', selectedVoice);
-
-        const { fullText, requestId } = await streamRequest('/analyze', formData);
-
-        setExtractedText(fullText);
-        if (requestId) fetchCachedAudio(requestId, 0);
-        setIsProcessing(false);
-    };
-
-
-    const fetchCachedAudio = async (requestId, msgIndex) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/audio/${requestId}`, { headers: getAuthHeaders() });
-            const data = await res.json();
-
-            if (data.audioChunks && data.audioChunks.length > 0) {
-                setMessages(prev => {
-                    const newMsgs = [...prev];
-                    if (newMsgs[msgIndex]) {
-                        newMsgs[msgIndex] = {
-                            ...newMsgs[msgIndex],
-                            audioCache: data.audioChunks,
-                            audioVoice: selectedVoice
-                        };
-                    }
-                    return newMsgs;
-                });
-                console.log("Parallel Audio Retrieved!");
-            }
-        } catch (e) {
-            console.error("Failed to fetch parallel audio", e);
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('voiceId', selectedVoice);
+            const { fullText } = await streamRequest('/analyze', formData);
+            if (fullText) setExtractedText(fullText);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsProcessing(false);
+            setCurrentAction("");
         }
     };
-
+    const fetchCachedAudio = async (requestId, msgIndex) => {
+        let isComplete = false;
+        while (!isComplete) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/audio/${requestId}`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (data.audioChunks && data.audioChunks.length > 0) {
+                    setMessages(prev => {
+                        const newMsgs = [...prev];
+                        if (newMsgs[msgIndex]) {
+                            const currentLen = newMsgs[msgIndex].audioCache?.length || 0;
+                            if (data.audioChunks.length > currentLen) {
+                                newMsgs[msgIndex] = {
+                                    ...newMsgs[msgIndex],
+                                    audioCache: data.audioChunks,
+                                    audioVoice: selectedVoice
+                                };
+                            }
+                        }
+                        return newMsgs;
+                    });
+                }
+                isComplete = data.isComplete;
+                if (!isComplete) {
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            } catch (e) {
+                console.error("Polling Error:", e);
+                break;
+            }
+        }
+    };
     const handleChat = async () => {
         if (!input.trim()) return;
+        shouldAutoScrollRef.current = true;
         const msg = input; setInput("");
-        const aiMsgIndex = messages.length + 1;
-
         setMessages(p => [...p, { role: 'user', content: msg }]);
         setIsProcessing(true); setCurrentAction("Thinking...");
-
         try {
-            const res = await fetch('http://localhost:5000/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({
-                    message: msg,
-                    context: extractedText,
-                    voiceId: selectedVoice,
-                    chatId: currentChatId
-                })
+            await streamRequest('/chat', {
+                message: msg,
+                voiceId: selectedVoice,
+                chatId: currentChatId
             });
-
-            const requestId = res.headers.get('X-Request-ID');
-            setCurrentAction(""); setMessages(p => [...p, { role: 'ai', content: "" }]);
-
-            const fullText = await streamResponse(res, (fn) => setMessages(prev => {
-                const newMsgs = [...prev];
-                const idx = newMsgs.length - 1;
-                const updatedMsg = { ...newMsgs[idx] };
-                updatedMsg.content = fn(updatedMsg.content);
-                newMsgs[idx] = updatedMsg;
-                return newMsgs;
-            }));
-
-            if (requestId) fetchCachedAudio(requestId, aiMsgIndex);
-
-        } catch (e) { console.error(e); } finally { setIsProcessing(false); }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsProcessing(false);
+        }
     };
-
     const getIcon = () => {
         if (!file) return <Upload className="w-10 h-10 text-blue-500 mb-2" />;
         if (file.type.startsWith('audio')) return <FileAudio className="w-10 h-10 text-purple-500 mb-2" />;
         return <FileText className="w-10 h-10 text-blue-500 mb-2" />;
     };
-
-
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-row overflow-hidden">
+        <div className="h-screen bg-gray-50 flex flex-row overflow-hidden">
             <div className={`fixed inset-y-0 left-0 z-20 w-72 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -450,8 +408,15 @@ export default function ChatInterface() {
                 {!showSidebar && (
                     <button onClick={() => setShowSidebar(true)} className="absolute top-4 left-4 z-10 p-2 bg-white shadow-md rounded-lg md:hidden"><Menu size={20} /></button>
                 )}
-
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
+                <div
+                    ref={scrollContainerRef}
+                    onScroll={handleScroll}
+                    onMouseDown={handleInteractionStart}
+                    onMouseUp={handleInteractionEnd}
+                    onTouchStart={handleInteractionStart}
+                    onTouchEnd={handleInteractionEnd}
+                    className="flex-1 overflow-y-auto p-4 md:p-8 pb-24"
+                >
                     <div className="max-w-3xl mx-auto">
                         {(messages.length === 0 && currentChatId === 'temp') ? (
                             <div className="mb-10 text-center mt-10">
@@ -500,7 +465,6 @@ export default function ChatInterface() {
                                 ))}
                             </div>
                         )}
-
                         {currentAction && (
                             <div className="flex items-center gap-2 mt-4 text-gray-400 text-sm animate-pulse">
                                 <Bot size={16} /> {currentAction}
@@ -509,24 +473,30 @@ export default function ChatInterface() {
                         <div ref={chatEndRef} />
                     </div>
                 </div>
-
                 <div className="bg-white border-t border-gray-100 p-4">
-                    <div className="max-w-3xl mx-auto relative flex items-center gap-2">
-                        <div className="relative">
-                            <button onClick={() => setShowVoiceMenu(!showVoiceMenu)} className="p-3 text-gray-500 hover:bg-gray-100 rounded-full transition"><Settings size={20} /></button>
-                            {showVoiceMenu && (
-                                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white shadow-xl border rounded-xl overflow-hidden z-50">
-                                    {availableVoices.map(v => (
-                                        <button key={v.id} onClick={() => { setSelectedVoice(v.id); setShowVoiceMenu(false) }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 truncate">{v.name}</button>
-                                    ))}
-                                </div>
-                            )}
+                    <div className="max-w-3xl mx-auto flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 px-2">
+                            <input
+                                type="checkbox"
+                                id="knowledgeToggle"
+                                checked={useGeneralKnowledge}
+                                onChange={(e) => setUseGeneralKnowledge(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="knowledgeToggle" className="cursor-pointer select-none">
+                                Allow AI to use general knowledge
+                            </label>
                         </div>
-                        <div className="relative flex-1">
-                            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleChat()} placeholder="Ask follow-up..." className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-black transition" />
-                            <button onClick={handleChat} disabled={!input.trim()} className="absolute right-2 top-2 p-1.5 bg-black text-white rounded-full hover:bg-gray-800 transition"><Send size={18} /></button>
+                        <div className="relative flex items-center gap-2">
+                            <div className="relative">
+                                <button onClick={() => setShowVoiceMenu(!showVoiceMenu)} className="p-3 text-gray-500 hover:bg-gray-100 rounded-full transition"><Settings size={20} /></button>
+                            </div>
+                            <div className="relative flex-1">
+                                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleChat()} placeholder="Ask follow-up..." className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-black transition" />
+                                <button onClick={handleChat} disabled={!input.trim()} className="absolute right-2 top-2 p-1.5 bg-black text-white rounded-full hover:bg-gray-800 transition"><Send size={18} /></button>
+                            </div>
+                            <button onClick={handleMicClick} className={`p-3 rounded-full transition ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isRecording ? <StopCircle size={20} /> : <Mic size={20} />}</button>
                         </div>
-                        <button onClick={handleMicClick} className={`p-3 rounded-full transition ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isRecording ? <StopCircle size={20} /> : <Mic size={20} />}</button>
                     </div>
                 </div>
             </div>
