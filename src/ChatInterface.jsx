@@ -91,15 +91,31 @@ export default function ChatInterface() {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, currentAction]);
     const streamBufferRef = useRef("");
-    const streamRequest = async (endpoint, body) => {
+const streamRequest = async (endpoint, body) => {
         try {
+            if (!token) {
+                console.error("No authentication token found!");
+                alert("Please log in again.");
+                return { fullText: "", requestId: null };
+            }
+
             const headers = { 'Authorization': `Bearer ${token}` };
-            if (!(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+            
+            if (!(body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+
             const res = await fetch(`http://localhost:5000/api${endpoint}`, {
                 method: 'POST',
                 headers,
                 body: body instanceof FormData ? body : JSON.stringify(body)
             });
+            if (res.status === 401 || res.status === 403) {
+                console.error("Authentication failed or expired.");
+                return { fullText: "", requestId: null };
+            }
+            
+            if (!res.ok) throw new Error(`Server Error: ${res.statusText}`);
             const newChatId = res.headers.get('X-Chat-ID');
             const requestId = res.headers.get('X-Request-ID');
             if (newChatId) {
