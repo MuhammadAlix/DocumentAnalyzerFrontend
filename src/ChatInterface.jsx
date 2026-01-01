@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentToken } from './store/authSlice';
 import { useGetVoicesQuery, useGetHistoryQuery, apiSlice } from './store/apiSlice';
-import { Upload, FileText, FileAudio, Bot, Mic, Volume2, StopCircle, Settings, Plus, Menu, X, Send } from 'lucide-react';
+import { Upload, FileText, FileAudio, Bot, Mic, Volume2, StopCircle, Settings, Plus, Menu, X, Send, Sparkles, User, ChevronDown, PanelLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const getAuthHeaders = () => {
@@ -389,180 +389,285 @@ const streamRequest = async (endpoint, body) => {
         return <FileText className="w-10 h-10 text-blue-500 mb-2" />;
     };
     return (
-        <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-row overflow-hidden transition-colors duration-200">
-            <div className={`fixed inset-y-0 left-0 z-20 w-72 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="flex flex-col h-full">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                        <h2 className="font-bold text-lg flex items-center gap-2 text-gray-900 dark:text-white">
-                            <Bot size={20} className="text-blue-600" /> History
-                        </h2>
-                        <button onClick={() => setShowSidebar(false)} className="md:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                            <X size={20} />
+        <div className="h-screen bg-[#030303] text-gray-100 flex overflow-hidden font-sans selection:bg-blue-500/30">
+            
+            {/* Ambient Background Glows */}
+            <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none" />
+
+            {/* --- COLLAPSIBLE GLASS SIDEBAR --- */}
+            <div 
+                className={`
+                    relative z-30 h-full bg-black/60 backdrop-blur-2xl border-r border-white/5 
+                    transition-all duration-300 ease-in-out overflow-hidden flex flex-col
+                    ${showSidebar ? 'w-80 translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0'}
+                `}
+            >
+                <div className="w-80 flex flex-col h-full"> {/* Fixed width wrapper to prevent content squishing during transition */}
+                    
+                    {/* Header */}
+                    <div className="p-5 border-b border-white/5 flex justify-between items-center">
+                        <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                                <Bot size={18} className="text-white" />
+                            </div>
+                            <span>AI Docs</span>
+                        </div>
+                        <button onClick={() => setShowSidebar(false)} className="text-gray-400 hover:text-white transition p-1 hover:bg-white/10 rounded-lg">
+                            <PanelLeft size={20} />
                         </button>
                     </div>
+
+                    {/* New Chat Button */}
                     <div className="p-4">
-                        <button onClick={() => startNewChat(true)} className="w-full flex items-center justify-center gap-2 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition font-medium">
-                            <Plus size={18} /> New Analysis
+                        <button onClick={() => startNewChat()} className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 text-white py-3 rounded-xl transition-all duration-200 group">
+                            <Plus size={18} className="group-hover:scale-110 transition-transform"/> 
+                            <span className="font-medium text-sm">New Analysis</span>
                         </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto px-2 space-y-1">
+
+                    {/* History List */}
+                    <div className="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+                        <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Chats</p>
                         {chatList.map(chat => (
                             <button
                                 key={chat.id}
                                 onClick={() => loadChat(chat.id)}
-                                className={`w-full text-left p-3 rounded-lg text-sm truncate transition ${
+                                className={`w-full text-left px-4 py-3 rounded-xl text-sm truncate transition-all duration-200 ${
                                     currentChatId === chat.id 
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' 
-                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900'
-                                }`}>
+                                    ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' 
+                                    : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 border border-transparent'
+                                }`}
+                            >
                                 {chat.title}
                             </button>
                         ))}
                     </div>
-                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-600">
-                        <span>{chatList.length - 1} chats stored</span>
+                    
+                    {/* Footer */}
+                    <div className="p-4 border-t border-white/5">
+                        <div className="flex items-center gap-3 px-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10 flex items-center justify-center">
+                                <User size={14} className="text-gray-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">Muhammad Ali</p>
+                                <p className="text-xs text-gray-500 truncate">Pro Plan</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div className="flex-1 flex flex-col h-screen relative bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-                <div className="absolute top-4 left-4 right-4 z-10 flex justify-between pointer-events-none">
-                    {!showSidebar && (
-                        <button onClick={() => setShowSidebar(true)} className="pointer-events-auto p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg md:hidden text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
-                            <Menu size={20} />
-                        </button>
-                    )}
-                    <div className="pointer-events-auto ml-auto">
-                    </div>
+
+            {/* --- MAIN CHAT AREA --- */}
+            <div className="flex-1 flex flex-col h-screen relative z-10 min-w-0">
+                
+                {/* Top Bar (Toggle & Menu) */}
+                <div className="absolute top-4 left-4 right-4 z-20 flex justify-between pointer-events-none">
+                    {/* Toggle Sidebar Button (Visible when sidebar is closed) */}
+                    <button 
+                        onClick={() => setShowSidebar(!showSidebar)} 
+                        className={`pointer-events-auto p-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all ${showSidebar ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}
+                    >
+                        <PanelLeft size={20} />
+                    </button>
                 </div>
+
+                {/* Messages Container */}
                 <div
                     ref={scrollContainerRef}
                     onScroll={handleScroll}
-                    onMouseDown={handleInteractionStart}
-                    onMouseUp={handleInteractionEnd}
-                    onTouchStart={handleInteractionStart}
-                    onTouchEnd={handleInteractionEnd}
-                    className="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
-                    <div className="max-w-3xl mx-auto pt-10">
+                    className="flex-1 overflow-y-auto px-4 md:px-8 pb-48 scroll-smooth" // Added massive pb-48 to clear the floating island
+                >
+                    <div className="max-w-3xl mx-auto pt-14">
+                        
+                        {/* Empty State */}
                         {(messages.length === 0 && currentChatId === 'temp') ? (
-                            <div className="mb-10 text-center mt-10">
-                                <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">What are we analyzing?</h1>
+                            <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-fade-in-up">
+                                <div className="w-20 h-20 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center mb-8 shadow-2xl shadow-blue-900/10 backdrop-blur-xl">
+                                    <Sparkles className="w-10 h-10 text-blue-400" />
+                                </div>
+                                <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500">
+                                    What are we analyzing?
+                                </h1>
+                                <p className="text-gray-400 mb-8 max-w-md">
+                                    Upload documents, videos, or audio to get started with advanced RAG analysis.
+                                </p>
+                                
                                 <input type="file" id="file-upload" className="hidden" onChange={handleFileChange} />
-                                <label htmlFor="file-upload" className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-10 cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition flex flex-col items-center group">
+                                <label 
+                                    htmlFor="file-upload" 
+                                    className="group relative w-full max-w-md border border-dashed border-white/20 rounded-2xl p-10 cursor-pointer hover:bg-white/5 hover:border-blue-500/50 transition-all duration-300 flex flex-col items-center"
+                                >
+                                    <div className="absolute inset-0 bg-blue-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
                                     {getIcon()}
-                                    <span className="text-lg font-medium text-gray-700 dark:text-gray-300 mt-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">{file ? file.name : "Drop a file here"}</span>
-                                    <span className="text-sm text-gray-400 dark:text-gray-500 mt-2">PDF, Audio, Video supported</span>
+                                    <span className="text-lg font-medium text-gray-300 group-hover:text-white transition relative z-10">
+                                        {file ? file.name : "Drop a file here"}
+                                    </span>
+                                    <span className="text-sm text-gray-500 mt-2 relative z-10">PDF, MP4, MP3, DOCX</span>
                                 </label>
-                                <button onClick={handleAnalyze} disabled={!file || isProcessing} className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-500 transition shadow-lg disabled:shadow-none">
+
+                                <button 
+                                    onClick={handleAnalyze} 
+                                    disabled={!file || isProcessing} 
+                                    className="mt-8 px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                >
                                     {isProcessing ? "Analyzing..." : "Start Analysis"}
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 {messages.map((msg, i) => (
-                                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}>
+                                    <div 
+                                        key={i} 
+                                        className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start items-end'} group`}
+                                    >
+                                        
+                                        {/* AI Icons (Bottom Left) */}
                                         {msg.role === 'ai' && (
-                                            <div className="flex flex-col items-center mr-2 mt-1 gap-1">
-                                                <div className="w-8 h-8 rounded-full bg-black dark:bg-gray-700 flex items-center justify-center text-white border border-transparent dark:border-gray-600">
-                                                    <Bot size={16} />
-                                                </div>
-                                                <button onClick={() => handleSpeak(msg)} className="text-gray-400 hover:text-black dark:hover:text-white opacity-0 group-hover:opacity-100 transition">
-                                                    {isSpeaking && i === messages.length - 1
-                                                        ? <StopCircle size={16} />
-                                                        : (msg.audioCache && msg.audioVoice === selectedVoice ? <Volume2 size={16} className="text-green-500" /> : <Volume2 size={16} />)
+                                            <div className="flex flex-col items-center gap-2 mb-1 shrink-0">
+                                                <button 
+                                                    onClick={() => handleSpeak(msg)} 
+                                                    className={`p-1.5 rounded-full transition-all duration-300 ${
+                                                        isSpeaking && i === messages.length - 1 
+                                                        ? 'bg-red-500/20 text-red-400' 
+                                                        : 'text-gray-500 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100'
+                                                    }`}
+                                                >
+                                                    {isSpeaking && i === messages.length - 1 
+                                                        ? <StopCircle size={14} /> 
+                                                        : <Volume2 size={14} />
                                                     }
                                                 </button>
+                                                
+                                                <div className="w-8 h-8 rounded-full bg-black border border-white/10 flex items-center justify-center shadow-lg shadow-blue-900/10">
+                                                    <Bot size={16} className="text-blue-400" />
+                                                </div>
                                             </div>
                                         )}
-                                        <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                                            msg.role === 'user' 
-                                            ? 'bg-blue-600 text-white rounded-br-none' 
-                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-bl-none'
-                                        }`}>
-                                            {msg.role === 'ai'
-                                                ? <ReactMarkdown components={{
-                                                    strong: ({ node, ...props }) => <span className="font-bold text-gray-900 dark:text-white" {...props} />,
-                                                    ul: ({ node, ...props }) => <ul className="list-disc ml-4 mt-2 mb-2 space-y-1" {...props} />,
-                                                    ol: ({ node, ...props }) => <ol className="list-decimal ml-4 mt-2 mb-2 space-y-1" {...props} />,
-                                                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
-                                                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                                                    h1: ({ node, ...props }) => <h1 className="text-lg font-bold mt-3 mb-2 text-gray-900 dark:text-white" {...props} />,
-                                                    h2: ({ node, ...props }) => <h2 className="text-base font-bold mt-2 mb-2 text-gray-900 dark:text-white" {...props} />,
-                                                    code: ({ node, ...props }) => <code className="bg-gray-100 dark:bg-gray-900 text-red-500 dark:text-red-400 px-1 py-0.5 rounded text-xs font-mono border border-gray-200 dark:border-gray-700" {...props} />,
-                                                }}>{msg.content}</ReactMarkdown>
-                                                : msg.content
-                                            }
+
+                                        {/* Message Bubble */}
+                                        <div 
+                                            className={`max-w-[85%] px-6 py-4 rounded-3xl text-sm leading-7 shadow-lg backdrop-blur-sm border ${
+                                                msg.role === 'user' 
+                                                ? 'bg-blue-600 text-white border-blue-500 rounded-br-none' 
+                                                : 'bg-white/5 text-gray-200 border-white/10 rounded-bl-none'
+                                            }`}
+                                        >
+                                            {msg.role === 'ai' ? (
+                                                <ReactMarkdown 
+                                                    components={{
+                                                        strong: ({node, ...props}) => <span className="font-bold text-white" {...props} />,
+                                                        h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2 text-white border-b border-white/10 pb-2" {...props} />,
+                                                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-white" {...props} />,
+                                                        code: ({node, ...props}) => <code className="bg-black/50 border border-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-blue-300" {...props} />,
+                                                        p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                                                        ul: ({node, ...props}) => <ul className="list-disc ml-4 space-y-1 mb-3" {...props} />,
+                                                    }}
+                                                >
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            ) : (
+                                                msg.content
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
+
                         {currentAction && (
-                            <div className="flex items-center gap-2 mt-4 text-gray-400 dark:text-gray-500 text-sm animate-pulse">
-                                <Bot size={16} /> {currentAction}
+                            <div className="flex items-center justify-center gap-2 mt-6 text-gray-500 text-sm animate-pulse">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"/>
+                                {currentAction}
                             </div>
                         )}
                         <div ref={chatEndRef} />
                     </div>
                 </div>
-                <div className="bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 p-4 transition-colors duration-200">
-                    <div className="max-w-3xl mx-auto flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 px-2">
-                            <input
-                                type="checkbox"
-                                id="knowledgeToggle"
-                                checked={useGeneralKnowledge}
-                                onChange={(e) => setUseGeneralKnowledge(e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                            />
-                            <label htmlFor="knowledgeToggle" className="cursor-pointer select-none hover:text-gray-900 dark:hover:text-gray-200 transition">
-                                Allow AI to use general knowledge
-                            </label>
-                        </div>
-                        <div className="relative flex items-center gap-2">
-                            <div className="relative">
-                                <button onClick={() => setShowVoiceMenu(!showVoiceMenu)} className="p-3 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition">
-                                    <Settings size={20} />
-                                </button>
-                                {showVoiceMenu && (
-                                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden z-50">
-                                        {availableVoices.map(v => (
-                                            <button 
-                                                key={v.id} 
-                                                onClick={() => { setSelectedVoice(v.id); setShowVoiceMenu(false) }} 
-                                                className={`w-full text-left px-4 py-2 text-sm truncate hover:bg-gray-50 dark:hover:bg-gray-700 transition ${selectedVoice === v.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                {v.name}
-                                            </button>
-                                        ))}
+
+                {/* --- FLOATING INPUT ISLAND --- */}
+                {/* Centered detached island with shadow and backdrop blur */}
+                <div className="absolute bottom-6 left-0 right-0 px-4 z-20 flex justify-center">
+                    <div className="w-full max-w-3xl bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 shadow-2xl shadow-black/50 ring-1 ring-white/5">
+                        <div className="flex flex-col gap-3">
+                            
+                            {/* Controls Row */}
+                            <div className="flex justify-between items-center px-2">
+                                {/* Knowledge Toggle */}
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition ${useGeneralKnowledge ? 'bg-blue-600 border-blue-600' : 'border-gray-600 bg-transparent'}`}>
+                                        {useGeneralKnowledge && <div className="w-1.5 h-1.5 bg-white rounded-[1px]" />}
                                     </div>
-                                )}
+                                    <input 
+                                        type="checkbox" 
+                                        className="hidden" 
+                                        checked={useGeneralKnowledge} 
+                                        onChange={(e) => setUseGeneralKnowledge(e.target.checked)} 
+                                    />
+                                    <span className="text-xs text-gray-400 group-hover:text-gray-200 transition font-medium">General Knowledge</span>
+                                </label>
+
+                                {/* Voice Selector */}
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowVoiceMenu(!showVoiceMenu)} 
+                                        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition px-2 py-1 rounded-full hover:bg-white/5"
+                                    >
+                                        <Settings size={12} />
+                                        <span className="truncate max-w-[100px]">{availableVoices.find(v => v.id === selectedVoice)?.name || "Default Voice"}</span>
+                                    </button>
+                                    {showVoiceMenu && (
+                                        <div className="absolute bottom-full right-0 mb-3 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50">
+                                            {availableVoices.map(v => (
+                                                <button 
+                                                    key={v.id} 
+                                                    onClick={() => { setSelectedVoice(v.id); setShowVoiceMenu(false) }} 
+                                                    className={`w-full text-left px-4 py-2.5 text-xs truncate hover:bg-white/5 transition ${selectedVoice === v.id ? 'text-blue-400 bg-white/5' : 'text-gray-400'}`}
+                                                >
+                                                    {v.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="relative flex-1">
-                                <input 
-                                    value={input} 
-                                    onChange={e => setInput(e.target.value)} 
-                                    onKeyDown={e => e.key === 'Enter' && handleChat()} 
-                                    placeholder="Ask follow-up..." 
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full py-3 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition" 
-                                />
+
+                            {/* Input Bar */}
+                            <div className="relative flex items-center gap-2">
+                                <div className="relative flex-1 group">
+                                    <input 
+                                        value={input} 
+                                        onChange={e => setInput(e.target.value)} 
+                                        onKeyDown={e => e.key === 'Enter' && handleChat()} 
+                                        placeholder="Ask a follow-up question..." 
+                                        className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 rounded-2xl py-3.5 pl-5 pr-14 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all shadow-inner text-sm" 
+                                    />
+                                    <button 
+                                        onClick={handleChat} 
+                                        disabled={!input.trim()} 
+                                        className="absolute right-2 top-2 bottom-2 aspect-square bg-white text-black rounded-xl flex items-center justify-center hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                                    >
+                                        <Send size={18} />
+                                    </button>
+                                </div>
+                                
                                 <button 
-                                    onClick={handleChat} 
-                                    disabled={!input.trim()} 
-                                    className="absolute right-2 top-2 p-1.5 bg-black dark:bg-white text-white dark:text-black rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                                    <Send size={18} />
+                                    onClick={handleMicClick} 
+                                    className={`p-3.5 rounded-2xl border transition-all ${
+                                        isRecording 
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse' 
+                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                                    }`}
+                                >
+                                    {isRecording ? <StopCircle size={20} /> : <Mic size={20} />}
                                 </button>
                             </div>
-                            <button 
-                                onClick={handleMicClick} 
-                                className={`p-3 rounded-full transition border border-transparent ${
-                                    isRecording 
-                                    ? 'bg-red-500 text-white animate-pulse shadow-red-500/50' 
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
-                                }`}>
-                                {isRecording ? <StopCircle size={20} /> : <Mic size={20} />}
-                            </button>
+                            
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     );

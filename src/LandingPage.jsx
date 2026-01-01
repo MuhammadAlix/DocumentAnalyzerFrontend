@@ -1,71 +1,117 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Zap, Brain, Eye, Mic, ArrowRight } from 'lucide-react';
+import { Bot, Brain, Eye, Mic, ArrowRight, Sparkles, Zap, Shield, Globe } from 'lucide-react';
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-2 font-bold text-xl text-gray-900 dark:text-white">
-          <Bot className="w-8 h-8 text-blue-600"/> 
-          <span>AI Docs Analyzer</span>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="space-x-4 hidden md:block">
-            <button onClick={() => navigate('/auth')} className="text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white font-medium transition">
+    <div className="min-h-screen bg-[#030303] text-white selection:bg-blue-500/30 overflow-x-hidden relative font-sans">
+      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none opacity-50 animate-pulse" />
+      <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none opacity-50" />
+      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl supports-[backdrop-filter]:bg-black/20">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 font-semibold text-xl tracking-tight">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <span>AI Docs</span>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => navigate('/auth')} 
+              className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            >
               Log In
             </button>
-            <button onClick={() => navigate('/auth?mode=signup')} className="bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition font-medium">
+            <button 
+              onClick={() => navigate('/auth?mode=signup')} 
+              className="bg-white text-black px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            >
               Get Started
             </button>
           </div>
         </div>
       </nav>
-      <div className="text-center py-20 px-4 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -z-10"></div>
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-gray-900 dark:text-white">
-          Chat with your Data <br/>
-          <span className="text-blue-600 dark:text-blue-400">Powered by Gemini 2.5</span>
+      <div className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-sm text-gray-300 mb-8 hover:bg-white/10 transition cursor-default">
+          <Sparkles className="w-4 h-4 text-blue-400" />
+          <span>Now with Gemini 2.5 Vision</span>
+        </div>
+        <h1 className="text-5xl md:text-8xl font-bold tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500">
+          Your Second Brain.
         </h1>
-        <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Experience the next generation of RAG. Upload PDFs, videos, or images and get 
-          instant, context-aware answers with neural-quality voice playback.
+        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed font-light">
+          Stop searching, start knowing. Upload documents, video lectures, or images 
+          and chat with them instantly using advanced <span className="text-blue-400 font-medium">RAG Memory</span>.
         </p>
-        <button onClick={() => navigate('/auth?mode=signup')} className="group bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition shadow-lg shadow-blue-200 dark:shadow-blue-900/20 flex items-center gap-2 mx-auto">
-          Try it Free
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>
-        </button>
-      </div>
-      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4 py-20">
-        <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-transparent dark:border-gray-700 hover:border-blue-100 dark:hover:border-gray-600 transition">
-          <Brain className="w-10 h-10 text-purple-600 dark:text-purple-400 mb-4"/>
-          <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Deep Context (RAG)</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Powered by Pinecone vector search. The AI remembers every detail of your documents for accurate follow-up questions.
-          </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+          <button 
+            onClick={() => navigate('/auth?mode=signup')} 
+            className="group relative px-8 py-4 bg-white text-black rounded-full font-semibold text-lg hover:scale-105 transition-transform duration-200"
+          >
+            Start Analyzing Free
+            <div className="absolute inset-0 rounded-full blur-lg bg-white/30 -z-10 group-hover:bg-white/50 transition-colors" />
+          </button>
+          <button 
+            className="px-8 py-4 rounded-full font-medium text-white border border-white/10 hover:bg-white/5 transition backdrop-blur-sm flex items-center gap-2"
+          >
+            View Demo <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
-        <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-transparent dark:border-gray-700 hover:border-blue-100 dark:hover:border-gray-600 transition">
-          <Eye className="w-10 h-10 text-blue-600 dark:text-blue-400 mb-4"/>
-          <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Multimodal Vision</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Don't just chat with text. Upload images, diagrams, or video lectures, and our vision model will analyze them instantly.
-          </p>
-        </div>
-        <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-transparent dark:border-gray-700 hover:border-blue-100 dark:hover:border-gray-600 transition">
-          <Mic className="w-10 h-10 text-red-500 dark:text-red-400 mb-4"/>
-          <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Neural Voice</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Listen to your summaries on the go. High-fidelity, local text-to-speech engine powered by Piper.
-          </p>
+
+        <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-blue-900/20 bg-[#0f0f0f]/50 backdrop-blur-sm aspect-[16/9] flex items-center justify-center group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5" />
+          <div className="text-center p-10">
+             <div className="w-16 h-16 bg-white/10 rounded-2xl mx-auto mb-6 flex items-center justify-center backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform duration-500">
+                <Brain className="w-8 h-8 text-blue-400" />
+             </div>
+             <p className="text-gray-500 font-mono text-sm">Processing 1,024 vector embeddings...</p>
+          </div>
         </div>
 
       </div>
-      <div className="text-center pb-10 text-gray-400 dark:text-gray-600 text-sm">
-        &copy; {new Date().getFullYear()} AI Docs Analyzer. Built with React & Node.js.
+
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        <h2 className="text-3xl font-bold mb-12 text-center">Engineered for clarity.</h2>
+        
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.06] transition-all duration-300 group">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 text-purple-400 group-hover:scale-110 transition-transform">
+              <Zap className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-gray-100">Instant Recall</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Our Vector Database remembers every detail. Ask follow-up questions without repeating context.
+            </p>
+          </div>
+
+          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.06] transition-all duration-300 group">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6 text-blue-400 group-hover:scale-110 transition-transform">
+              <Eye className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-gray-100">Multimodal Vision</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Upload a video lecture or a diagram. The AI watches, analyzes, and transcribes it for you.
+            </p>
+          </div>
+
+          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.06] transition-all duration-300 group">
+            <div className="w-12 h-12 rounded-2xl bg-green-500/20 flex items-center justify-center mb-6 text-green-400 group-hover:scale-110 transition-transform">
+              <Mic className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-gray-100">Neural Voice</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Listen to summaries on the go with our ultra-realistic, local-first Piper TTS engine.
+            </p>
+          </div>
+        </div>
       </div>
+
+      <footer className="border-t border-white/5 py-12 text-center text-gray-600 text-sm">
+        <p>&copy; {new Date().getFullYear()} AI Docs Analyzer. Built with React, Node & Gemini.</p>
+      </footer>
     </div>
   );
 }
