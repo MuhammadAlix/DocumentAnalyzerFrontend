@@ -76,7 +76,7 @@ export default function ChatInterface() {
         fetchVoices();
         const initHistory = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/history', { headers: getAuthHeaders() });
+                const res = await fetch('http://192.168.100.61:5000/api/history', { headers: getAuthHeaders() });
                 const data = await res.json();
                 const tempChat = { id: 'temp', title: 'New Chat' };
                 setChatList([tempChat, ...data]);
@@ -105,7 +105,7 @@ const streamRequest = async (endpoint, body) => {
                 headers['Content-Type'] = 'application/json';
             }
 
-            const res = await fetch(`http://localhost:5000/api${endpoint}`, {
+            const res = await fetch(`http://192.168.100.61:5000/api${endpoint}`, {
                 method: 'POST',
                 headers,
                 body: body instanceof FormData ? body : JSON.stringify(body)
@@ -177,7 +177,7 @@ const streamRequest = async (endpoint, body) => {
         }
     };
     const fetchVoices = () => {
-        fetch('http://localhost:5000/api/voices', { headers: getAuthHeaders() })
+        fetch('http://192.168.100.61:5000/api/voices', { headers: getAuthHeaders() })
             .then(res => res.json())
             .then(data => {
                 setAvailableVoices(data.voices);
@@ -187,7 +187,7 @@ const streamRequest = async (endpoint, body) => {
     };
     const fetchHistory = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/history', { headers: getAuthHeaders() });
+            const res = await fetch('http://192.168.100.61:5000/api/history', { headers: getAuthHeaders() });
             const data = await res.json();
             const tempChat = { id: 'temp', title: 'New Chat' };
             setChatList([tempChat, ...data]);
@@ -202,7 +202,7 @@ const streamRequest = async (endpoint, body) => {
         setCurrentAction("Loading chat...");
         shouldAutoScrollRef.current = false;
         try {
-            const res = await fetch(`http://localhost:5000/api/history/${id}`, { headers: getAuthHeaders() });
+            const res = await fetch(`http://192.168.100.61:5000/api/history/${id}`, { headers: getAuthHeaders() });
             const data = await res.json();
             setExtractedText(data.context || "");
             setMessages(data.Messages || data.messages || []);
@@ -255,7 +255,7 @@ const streamRequest = async (endpoint, body) => {
         else {
             console.log("Cache miss or voice changed. Fetching...");
             try {
-                const res = await fetch('http://localhost:5000/api/speak', {
+                const res = await fetch('http://192.168.100.61:5000/api/speak', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -306,7 +306,7 @@ const streamRequest = async (endpoint, body) => {
                 formData.append('audio', audioBlob, 'voice.webm');
                 try {
                     const headers = getAuthHeaders();
-                    const res = await fetch('http://localhost:5000/api/transcribe', { method: 'POST', headers, body: formData });
+                    const res = await fetch('http://192.168.100.61:5000/api/transcribe', { method: 'POST', headers, body: formData });
                     const data = await res.json();
                     if (data.text) setInput(prev => prev + " " + data.text);
                 } catch (err) { console.error(err); } finally { setIsProcessing(false); stream.getTracks().forEach(t => t.stop()); }
@@ -337,7 +337,7 @@ const streamRequest = async (endpoint, body) => {
         let isComplete = false;
         while (!isComplete) {
             try {
-                const res = await fetch(`http://localhost:5000/api/audio/${requestId}`, { headers: getAuthHeaders() });
+                const res = await fetch(`http://192.168.100.61:5000/api/audio/${requestId}`, { headers: getAuthHeaders() });
                 const data = await res.json();
                 if (data.audioChunks && data.audioChunks.length > 0) {
                     setMessages(prev => {
